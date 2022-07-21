@@ -20,7 +20,7 @@ def getAvg (inputVals):
         sum += val
 
     #get the average
-    return float(sum) / inputVals.length
+    return float(sum) / inputSize
 
 
 def backpropagate (inputVals, inputWeights, cost):
@@ -37,7 +37,7 @@ def train (inputVals):
     inputString = "["
     for val in inputVals:
         inputString += str(val) + ", "
-    inputString = inputString[0, -2] + "]"
+    inputString = inputString[0:-2] + "]"
 
     print("Input values:")
     print(inputString)
@@ -59,8 +59,8 @@ def train (inputVals):
 
 
     #compare/print expected and actual outputs
-    print("Expected output:" + getAvg(inputVals))
-    print("Actual output:" + output)
+    print("Expected output:" + str(getAvg(inputVals)))
+    print("Actual output:" + str(output))
     print("Difference:" + str(proutput - output))
 
 
@@ -69,7 +69,7 @@ def train (inputVals):
 
 
     #backpropagate
-
+    backpropagate(inputVals, inputWeights, cost)
 
 
     #print an empty line to make the debugging look nice :)
