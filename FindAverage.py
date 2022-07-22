@@ -1,26 +1,27 @@
 #A simple neural network that learns to find the average of some numbers
 import random
 
+#most important vars
 #use input size of 2 for a perceptron
-inputSize = 2
+inputSize = 10
+stepSize = 10 ** -11
+iterations = 1000
 
-#number of times the net will be trained
-iterations = 100
+maxInValue = 10 ** 5
 
-#instantiate the input list
+#instantiate the input list/input nodes
 inputValues = [0] * inputSize
 
-#instantiate and define the corresponding weights
+#instantiate and define the corresponding weights (range from -1 to 1)
 inputWeights = [0.0] * inputSize
 for i in range(inputSize):
     inputWeights[i] = random.randint(-1000, 1000)/1000.0
+#for debugging
+OGWeights = str(inputWeights)
 
 bias = 0
-
 proutput = 0
 output = 0
-
-stepSize = 10 ** -10
 
 #set guiding function to train perceptron 2
 def getAvg (inputVals):
@@ -64,62 +65,65 @@ def getCostSlopes(inputVals, output, proutput):
         #...and store it in a list of weights' corresponding slopes based on the cost function
         weightSlopes[i] = 2 * (output - proutput) * inputVals[i]
 
-    print("Weight slopes: " + str(weightSlopes))
     return weightSlopes
 
-def backpropagate (inputWeights, slopes):
-    print ("Backpropagating...")
-
+def backpropagate (inputWeights, slopes, bias):
     #modify every weight by its corresponding slope based on the cost function
     for i in range(inputSize):
         inputWeights[i] -= stepSize * slopes[i]
 
+    #modify the bias by its partial derivative
+    bias -= stepSize * 2 * (output - proutput)
+
 
 #define the training procedure for 1 round of training
-def train (inputVals):
-    print("Running another round of training...\n"
-          "******************************************************")
-
-
-    #Print input values
-    print("Input values: " + str(inputVals))
-
-    print("Weights: " + str(inputWeights))
-
-    print("Bias: " + str(bias))
-
-
+def train (iterationNum, inputVals):
     #calculate output
     output = getOutput(inputVals, inputWeights)
 
+    #calculate predicted output (target output)
     proutput = getAvg(inputVals)
 
 
-    #compare/print expected and actual outputs
-    print("Expected output: " + str(getAvg(inputVals)))
-    print("Actual output: " + str(output))
-    print("Difference: " + str(proutput - output))
-
-
-    #determine cost
-    cost = getCost(output, proutput)
-
+    weightSlopes = getCostSlopes(inputVals, output, proutput)
 
     #backpropagate
-    backpropagate(inputWeights, getCostSlopes(inputVals, output, proutput))
+    backpropagate(inputWeights, weightSlopes, bias)
 
+    #Print stuff every few iterations
+    if (iterationNum % 100 == 0):
+        print("Running another round of training... (Iteration " + str(iterationNum) + ")\n"
+              "******************************************************")
 
-    #print an empty line to make the debugging look nice :)
-    print("")
+        # Print input values
+        print("Input values: " + str(inputVals))
+        print("Original weights: " + OGWeights)
+        print("Weights: " + str(inputWeights))
+        print("Bias: " + str(bias))
+
+        # print output/backpropagation info
+        print("Expected output: " + str(getAvg(inputVals)))
+        print("Actual output: " + str(output))
+        print("Difference: " + str(proutput - output))
+
+        print ("Backpropagating...")
+        print("Weight slopes: " + str(weightSlopes))
+
+        #print an empty line to make the debugging look nice :)
+        print("")
 
 #run the NN
 if __name__ == '__main__':
     print('Starting program...')
+
     print("Training...")
-
     for i in range(iterations):
-        #define the input values
-        for i in range(0, inputSize):
-            inputValues[i] = random.randint(0, 100000)
 
-        train(inputValues)
+        #define the input values
+        for j in range(0, inputSize):
+            inputValues[j] = random.randint(0, maxInValue)
+
+        train(i, inputValues)
+
+#Tutorials and sources used to build this:
+#   This guy's tutorials are how I learned to build the perceptron: https://www.youtube.com/watch?v=ZzWaow1Rvho&list=PLxt59R_fWVzT9bDxA76AHm3ig0Gg9S3So
