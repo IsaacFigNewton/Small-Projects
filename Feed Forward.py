@@ -1,9 +1,6 @@
 """
 Agenda:
 ************************************************************************************************************************
-    Expand output layer to be any size (use a 2D array/matrix for weights)
-        Note: the weights for all output nodes seem to be backpropagating by
-            the slopes of the weights connected to the last output node
     Create a 1-node hidden layer
     Expand hidden layer to be any size (use a 2D array/matrix for weights)
     Add functionality to add as many 1-node hidden layers as desired
@@ -12,6 +9,7 @@ Agenda:
 
 #A simple neural network that learns to find the average of some numbers
 import random
+import numpy as np
 
 #most important vars
 #use inputSize of 2, outputSize of 1, and step size of 10 ** -10 for a perceptron
@@ -25,8 +23,8 @@ maxInValue = 10 ** 5
 #instantiate the input list/input nodes
 inputValues = [0] * inputSize
 
-#instantiate the input weights matrix, should be referenced by [outputNodeIndex, inputNodeIndex]
-weights = [[0.0] * inputSize] * outputSize
+#instantiate the input weights matrix, should be referenced by [outputNodeIndex][inputNodeIndex]
+weights = np.zeros((outputSize, inputSize))#[[0.0] * inputSize] * outputSize
 
 #define the corresponding weights (range from -1 to 1)
 for i in range(outputSize):
@@ -82,8 +80,8 @@ def getCostSlopes(inputVals, output, proutput):
     assert(len(output) == outputSize)
     assert(len(proutput) == outputSize)
 
-    #define a matrix to store the slopes at the weights in sets corresponding to each output node, should be referenced by [outputNodeIndex, inputNodeIndex]
-    weightSlopes = [[0.0] * inputSize] * outputSize
+    #define a matrix to store the slopes at the weights in sets corresponding to each output node, should be referenced by [outputNodeIndex][inputNodeIndex]
+    weightSlopes = np.zeros((outputSize, inputSize))
 
     """
         In:   Out:
@@ -202,6 +200,10 @@ if __name__ == '__main__':
             inputValues[j] = random.randint(0, maxInValue)
 
         train(i, inputValues)
-
-#Tutorials and sources used to build this:
-#   This guy's tutorials are how I learned to build the perceptron: https://www.youtube.com/watch?v=ZzWaow1Rvho&list=PLxt59R_fWVzT9bDxA76AHm3ig0Gg9S3So
+"""
+Tutorials and sources used to build this:
+************************************************************************************************************************
+    This guy's tutorials are how I learned to build the perceptron:     https://www.youtube.com/watch?v=ZzWaow1Rvho&list=PLxt59R_fWVzT9bDxA76AHm3ig0Gg9S3So
+    This helped with the weird, dumb stuff with arrays:                 https://stackoverflow.com/questions/72585703/modifying-2d-array-python
+    
+"""
