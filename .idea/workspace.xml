@@ -3,6 +3,10 @@
   <component name="ChangeListManager">
     <list default="true" id="e3580990-e453-44dc-9d4e-eb4d5d2df186" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Drawings/IMG_2043.HEIC" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Drawings/IMG_2044.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Drawings/IMG_2046.HEIC" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Drawings/IMG_2191.HEIC" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Feed Forward.py" beforeDir="false" afterPath="$PROJECT_DIR$/Feed Forward.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -137,16 +141,5 @@
       <updated>1658180707869</updated>
     </task>
     <servers />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Feed Forward.py</url>
-          <line>164</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

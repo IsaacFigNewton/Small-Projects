@@ -11,9 +11,10 @@ import numpy as np
 
 #most important vars
 #use inputSize of 2, outputSize of 1, and step size of 10 ** -10 for a perceptron
-numLayers = 3
+
 
 inputSize = 2
+numHiddenLayers = 0
 hiddenLayerSize = 4
 outputSize = 3
 
@@ -46,11 +47,19 @@ Ex: for a NN with 3 input nodes, 1 hidden layer with 2 nodes, and 4 output nodes
     ]
 ]
 
-because there's only 1 hidden layer, there will only be 2 weight layers
+because there's only 1 hidden layer, there will only be 2 weight sets
 """
-weights = [np.zeros((hiddenLayerSize, inputSize)), np.zeros((outputSize, hiddenLayerSize))]
 
-#this loop should scale with the number of weight layers and thus hidden layers
+if numHiddenLayers <= 0:
+    weights = [np.zeros((outputSize, inputSize))]
+elif numHiddenLayers == 1:
+    weights = [np.zeros((hiddenLayerSize, inputSize)), np.zeros((outputSize, hiddenLayerSize))]
+elif numHiddenLayers > 1:
+    weights = [np.zeros((hiddenLayerSize, inputSize)),
+                    np.zeros((hiddenLayerSize, hiddenLayerSize)) * (numHiddenLayers - 1),
+                    np.zeros((outputSize, hiddenLayerSize))]
+
+#this loop should scale with the number of weight sets and thus hidden layers
 #for each layer of weights
 for i in range(len(weights)):
     #go through each sets of weights
@@ -105,10 +114,16 @@ def getCostSlopes(inputVals, hiddenVals, output, proutput):
     assert(len(proutput) == outputSize)
 
     #define a matrix to store the slopes at the weights in sets corresponding to each output node,
-    #   should be referenced by [weightLayerIndex][outputNodeIndex][inputNodeIndex]
-    #the first number represents the number of layers
-    #because there's only 1 hidden layer, there will only be 2 weight sets
-    weightSlopes = [np.zeros((hiddenLayerSize, inputSize)), np.zeros((outputSize, hiddenLayerSize))]
+    #   should be referenced by [weightLayerIndex][resultantNodeIndex][inputNodeIndex]
+    if hiddenVals == None or numHiddenLayers <= 0:
+        weightSlopes = [np.zeros((outputSize, inputSize))]
+    elif numHiddenLayers == 1:
+        weightSlopes = [np.zeros((hiddenLayerSize, inputSize)),
+                        np.zeros((outputSize, hiddenLayerSize))]
+    elif numHiddenLayers > 1:
+        weightSlopes = [np.zeros((hiddenLayerSize, inputSize)),
+                        np.zeros((hiddenLayerSize, hiddenLayerSize)) * (numHiddenLayers - 1),
+                        np.zeros((outputSize, hiddenLayerSize))]
 
     """
         In:   Hidden:   Out:
@@ -126,11 +141,11 @@ def getCostSlopes(inputVals, hiddenVals, output, proutput):
         
     calculate the partial derivatives for all weights:
         notation:
-            the letter after each w signifies the weight layer,
+            the letter after each w signifies the weight set,
             the first number the resultant node number,
             the second number the input node number
             
-        partial derivatives in the first weight layer:
+        partial derivatives in the first weight set:
             cost = (output1 - proutput1) ** 2
             output1 = hidden1 * wh11 + hidden2 * wh12 + ... + b
             output1 = (in1 * wi11 + in2 * wi12 + ...) * wh11 + (in1 * wi21 + in2 * wi22 + ...) * wh12 + ...
@@ -144,7 +159,7 @@ def getCostSlopes(inputVals, hiddenVals, output, proutput):
                 to any hidden node in the 1st weights layer)
                 = 2 * (output1 - proutput1) * (in... * wh...)
             
-        partial derivatives in the second weight layer:
+        partial derivatives in the second weight set:
             cost = (output - proutput) ** 2
             output1 = hidden1 * wh11 + hidden2 * wh12 + ... + b
             d/dwh11(output1) = hidden1
@@ -163,7 +178,7 @@ def getCostSlopes(inputVals, hiddenVals, output, proutput):
 
     #iterate through all the output nodes
     for o in range(outputSize):
-        #iterate through all the weight layers
+        #iterate through all the weight sets
         for i in range(len(weightSlopes)):
             #iterate through all the sets in a layer (corresponding to resultant nodes)
             for j in range(len(weightSlopes[i])):
@@ -171,12 +186,13 @@ def getCostSlopes(inputVals, hiddenVals, output, proutput):
                 for k in range(len(weightSlopes[i][j])):
                     #store each weight's corresponding slope based on the cost function
 
-                    #if it's in the first weight layer, j = hidden node index, k = input node index
+                    #if it's in the first weight set, j = hidden node index, k = input node index
                     if (i == 0):
                         weightSlopes[0][j][k] += 2 * (output[o] - proutput[o]) * inputVals[k] * weights[1][o][j]
-                    #if it's in the second weight layer, j = output node index, k = hidden node index
-                    elif (i == 1):
+                    #if it's in the last weight set, j = output node index, k = hidden node index
+                    elif (i == len(weightSlopes) - 1):
                         weightSlopes[1][j][k] += 2 * (output[o] - proutput[o]) * hiddenVals[k]
+                    #if it's in an intermediate weight set
                     else:
                         print("bruh momen")
 
@@ -185,8 +201,8 @@ def getCostSlopes(inputVals, hiddenVals, output, proutput):
 def backpropagate (weights, slopes, bias):
     #make sure the arguments are right
 
-    assert(len(weights) == numLayers - 1)
-    assert(len(slopes) == numLayers - 1)
+    assert(len(weights) == numHiddenLayers + 1)
+    assert(len(slopes) == numHiddenLayers + 1)
     assert(len(bias) == outputSize)
 
     #modify every weight by its corresponding slope based on the cost function
@@ -203,7 +219,7 @@ def backpropagate (weights, slopes, bias):
         bias[k] -= stepSize * 2 * (output[k] - proutput[k])
 
 #assumes m1 and m2 are lists of the same length
-def performMatrixOperation (m1, operation, m2):
+def performFakeMatrixOperation (m1, operation, m2):
     resultingMatrix = [0.0] * len(m1)
 
     #This is where functions in Java would come in handy
@@ -228,21 +244,40 @@ def performMatrixOperation (m1, operation, m2):
 #define the training procedure for 1 round of training
 def train (iterationNum, inputVals):
 
-    hiddenNodeVals = [0.0] * hiddenLayerSize
-    #calculate values of hidden nodes
-    for i in range(hiddenLayerSize):
-        hiddenNodeVals[i] = sumWeightedValues(inputVals, weights[0][i])
+    if (numHiddenLayers > 0):
+        hiddenNodeVals = np.zeros((hiddenLayerSize, numHiddenLayers))
+
+        #define the first hidden layer
+        for i in range(hiddenLayerSize):
+            hiddenNodeVals[0][j] = sumWeightedValues(inputVals, weights[0][i])
+
+        #define the rest of the hidden layers' nodes values
+        if (numHiddenLayers > 1):
+            #loop through the hidden layerrs
+            for i in range(1, numHiddenLayers):
+                #loop through the nodes in each layer
+                for j in range(hiddenLayerSize):
+                    #set the values of the nodes in the next hidden layer to the sum of the connected,
+                    #weighted products of the previous layer's nodes
+                    hiddenNodeVals[i][j] = sumWeightedValues(hiddenNodeVals[i - 1], weights[0][i])
 
     #calculate values of output nodes
     for i in range(outputSize):
         #calculate output
-        output[i] = sumWeightedValues(hiddenNodeVals, weights[1][i]) + bias[i]
+        if (numHiddenLayers > 0):
+            output[i] = sumWeightedValues(hiddenNodeVals[numHiddenLayers - 1], weights[numHiddenLayers + 1][i]) + bias[i]
+        else:
+            output[i] = sumWeightedValues(inputVals, weights[0][i]) + bias[i]
 
         #calculate predicted output (target output)
         proutput[i] = getAvg(inputVals)
 
     #get the slopes for all weights
-    weightSlopes = getCostSlopes(inputVals, hiddenNodeVals, output, proutput)
+    #fix this so it works with no hidden layers
+    if (numHiddenLayers > 0):
+        weightSlopes = getCostSlopes(inputVals, hiddenNodeVals, output, proutput)
+    else:
+        weightSlopes = getCostSlopes(inputVals, None, output, proutput)
 
     #backpropagate
     backpropagate(weights, weightSlopes, bias)
