@@ -1,7 +1,6 @@
 """
 Agenda:
 ************************************************************************************************************************
-    Expand hidden layer to be any size
     Add functionality to add as many 1-node hidden layers as desired
     Expand functionality to have any number of varying size hidden layers (use a 2D array/matrix for layers? (make nodes and layers objects in C# version))
 """
@@ -15,13 +14,13 @@ import numpy as np
 numLayers = 3
 
 inputSize = 2
-hiddenLayerSize = 2
-outputSize = 2
+hiddenLayerSize = 4
+outputSize = 3
 
-stepSize = 10 ** -10
-iterations = 2000
+stepSize = 10 ** -7
+iterations = 5000
 
-maxInValue = 10 ** 5
+maxInValue = 10 ** 3
 
 #instantiate the input list/input nodes
 inputValues = [0] * inputSize
@@ -79,14 +78,16 @@ def getAvg (inputVals):
     #get the average
     return float(sum) / inputSize
 
-def sumWeightedValues(inputVals, inputWeights):
+def sumWeightedValues(vals, weights):
+    assert(len(vals) == len(weights))
+
     #instantiate output variable
     output = 0.0
 
     #define it as the sum of weighted inputs
-    for j in range(len(inputVals)):
+    for i in range(len(vals)):
         #RuntimeWarning: invalid value encountered in double_scalars
-        output += inputVals[j] * inputWeights[j]
+        output += vals[i] * weights[i]
 
     return output
 
@@ -106,7 +107,7 @@ def getCostSlopes(inputVals, hiddenVals, output, proutput):
     #define a matrix to store the slopes at the weights in sets corresponding to each output node,
     #   should be referenced by [weightLayerIndex][outputNodeIndex][inputNodeIndex]
     #the first number represents the number of layers
-    #because there's only 1 hidden layer, there will only be 2 weight layers
+    #because there's only 1 hidden layer, there will only be 2 weight sets
     weightSlopes = [np.zeros((hiddenLayerSize, inputSize)), np.zeros((outputSize, hiddenLayerSize))]
 
     """
@@ -172,10 +173,10 @@ def getCostSlopes(inputVals, hiddenVals, output, proutput):
 
                     #if it's in the first weight layer, j = hidden node index, k = input node index
                     if (i == 0):
-                        weightSlopes[0][j][k] = 2 * (output[o] - proutput[o]) * inputVals[k] * weights[1][o][j]
+                        weightSlopes[0][j][k] += 2 * (output[o] - proutput[o]) * inputVals[k] * weights[1][o][j]
                     #if it's in the second weight layer, j = output node index, k = hidden node index
                     elif (i == 1):
-                        weightSlopes[1][j][k] = 2 * (output[o] - proutput[o]) * hiddenVals[k]
+                        weightSlopes[1][j][k] += 2 * (output[o] - proutput[o]) * hiddenVals[k]
                     else:
                         print("bruh momen")
 
@@ -189,8 +190,11 @@ def backpropagate (weights, slopes, bias):
     assert(len(bias) == outputSize)
 
     #modify every weight by its corresponding slope based on the cost function
+    #for each weight set
     for i in range(len(weights)):
+        #for each array of weights corresponding to resultant node j
         for j in range(len(weights[i])):
+            #for each weight in said array, which corresponds to each input node k
             for k in range(len(weights[i][j])):
                 weights[i][j][k] -= stepSize * slopes[i][j][k]
 
@@ -250,8 +254,8 @@ def train (iterationNum, inputVals):
 
         # Print input values
         print("Input values: " + str(inputVals))
-        print("Original weights: " + OGWeights)
-        print("Weights: " + str(weights))
+        print("Original weights: \n\t\t" + OGWeights)
+        print("Weights (First " + str(inputSize * hiddenLayerSize) + " values are for the weights of the connections between the first 2 layers):\n\t\t" + str(weights))
         print("Bias: " + str(bias))
 
         # print output/backpropagation info
