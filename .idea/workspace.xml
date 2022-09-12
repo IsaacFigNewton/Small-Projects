@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="e3580990-e453-44dc-9d4e-eb4d5d2df186" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Drawings/IMG_2043.HEIC" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Drawings/IMG_2044.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Drawings/IMG_2046.HEIC" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Drawings/IMG_2191.HEIC" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Feed Forward.py" beforeDir="false" afterPath="$PROJECT_DIR$/Feed Forward.py" afterDir="false" />
-    </list>
+    <list default="true" id="e3580990-e453-44dc-9d4e-eb4d5d2df186" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -24,6 +17,14 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitSEFilterConfiguration">
+    <file-type-list>
+      <filtered-out-file-type name="LOCAL_BRANCH" />
+      <filtered-out-file-type name="REMOTE_BRANCH" />
+      <filtered-out-file-type name="TAG" />
+      <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
+    </file-type-list>
+  </component>
   <component name="ProjectId" id="2C8ONSzZkoDagLj84mFtXKfxsbG" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
@@ -38,17 +39,17 @@
   </component>
   <component name="RunManager" selected="Python.Feed Forward">
     <configuration name="Feed Forward" type="PythonConfigurationType" factoryName="Python">
+      <module name="Small-Neural-Networks" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
-      <option name="SDK_HOME" value="C:\Users\igeek\OneDrive\Documents\GitHub\Small-Neural-Networks\Scripts\python.exe" />
+      <option name="SDK_HOME" value="C:\Users\Owner\Documents\GitHub\Small-Neural-Networks\venv\Scripts\python.exe" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Feed Forward.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
