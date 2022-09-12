@@ -143,4 +143,21 @@
     </task>
     <servers />
   </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Feed Forward.py</url>
+          <line>212</line>
+          <option name="timeStamp" value="10" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+    <watches-manager>
+      <configuration name="PythonConfigurationType">
+        <watch expression="weights" language="Python" />
+        <watch expression="numHiddenLayers" language="Python" />
+      </configuration>
+    </watches-manager>
+  </component>
 </project>

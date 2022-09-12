@@ -1,11 +1,10 @@
 """
 Agenda:
 ************************************************************************************************************************
-    Add functionality to add as many 1-node hidden layers as desired
     Expand functionality to have any number of varying size hidden layers (use a 2D array/matrix for layers? (make nodes and layers objects in C# version))
 """
 
-#A simple neural network that learns to find the average of some numbers
+#A small neural network that learns to find the average of some numbers
 import random
 import numpy as np
 
@@ -13,18 +12,38 @@ import numpy as np
 #use inputSize of 2, outputSize of 1, and step size of 10 ** -10 for a perceptron
 
 
-inputSize = 4
-numHiddenLayers = 1
-hiddenLayerSize = 4
-outputSize = 3
+inputSize = 2
+numHiddenLayers = 2
+hiddenLayerSize = 2
+outputSize = 2
 
 stepSize = 10 ** -10
-iterations = 5000
+iterations = 20000
 
 maxInValue = 10 ** 3
 
 #instantiate the input list/input nodes
 inputValues = [0] * inputSize
+
+
+def generateWeightsSet():
+    newSet = []
+
+    if numHiddenLayers <= 0:
+        newSet.append(np.zeros((outputSize, inputSize)))
+
+    elif numHiddenLayers == 1:
+        newSet.append(np.zeros((hiddenLayerSize, inputSize)))
+        newSet.append(np.zeros((outputSize, hiddenLayerSize)))
+
+    elif numHiddenLayers > 1:
+        newSet.append(np.zeros((hiddenLayerSize, inputSize)))
+        for i in range(numHiddenLayers - 1):
+            newSet.append(np.zeros((hiddenLayerSize, hiddenLayerSize)))
+        newSet.append(np.zeros((outputSize, hiddenLayerSize)))
+
+    return newSet
+
 
 """
 instantiate the weights matrix, should be referenced by [weightLayerIndex][outputNodeIndex][inputNodeIndex]
@@ -37,7 +56,7 @@ Ex: for a NN with 3 input nodes, 1 hidden layer with 2 nodes, and 4 output nodes
         [w9, w10, w11]
         [w12, w13, w14]
     ]
-    
+
     #hidden layer to output layer weights
     [
         [w1, w2]
@@ -49,15 +68,7 @@ Ex: for a NN with 3 input nodes, 1 hidden layer with 2 nodes, and 4 output nodes
 
 because there's only 1 hidden layer, there will only be 2 weight sets
 """
-
-if numHiddenLayers <= 0:
-    weights = [np.zeros((outputSize, inputSize))]
-elif numHiddenLayers == 1:
-    weights = [np.zeros((hiddenLayerSize, inputSize)), np.zeros((outputSize, hiddenLayerSize))]
-elif numHiddenLayers > 1:
-    weights = [np.zeros((hiddenLayerSize, inputSize)),
-                    np.zeros((hiddenLayerSize, hiddenLayerSize)) * (numHiddenLayers - 1),
-                    np.zeros((outputSize, hiddenLayerSize))]
+weights = generateWeightsSet()
 
 #this loop should scale with the number of weight sets and thus hidden layers
 #for each layer of weights
@@ -117,20 +128,7 @@ def getCostSlopes(inputVals, hiddenVals, output, proutput):
 
     #define a multi-dimensional array to store the slopes at the weights in sets corresponding to each output node,
     #   should be referenced by [weightLayerIndex][resultantNodeIndex][inputNodeIndex]
-    weightSlopes = []
-
-    if hiddenVals == None or numHiddenLayers <= 0:
-        weightSlopes.append(np.zeros((outputSize, inputSize)))
-
-    elif numHiddenLayers == 1:
-        weightSlopes.append(np.zeros((hiddenLayerSize, inputSize)))
-        weightSlopes.append(np.zeros((outputSize, hiddenLayerSize)))
-
-    elif numHiddenLayers > 1:
-        weightSlopes.append(np.zeros((hiddenLayerSize, inputSize)))
-        for i in range(numHiddenLayers):
-            weightSlopes.append(np.zeros((hiddenLayerSize, hiddenLayerSize)))
-        weightSlopes.append(np.zeros((outputSize, hiddenLayerSize)))
+    weightSlopes = generateWeightsSet()
 
     """
         In:   Hidden:   Out:
@@ -209,6 +207,9 @@ def getCostSlopes(inputVals, hiddenVals, output, proutput):
                             weightSlopes[1][j][k] += frstPrtOfPrtlDrvtvs * hiddenVals[0][k]
 
                     #if there're more than 2 weight sets
+                    #****************************************************************************************************
+                    #there're mistakes in your generalization
+                    #****************************************************************************************************
                     else:
                         #if it (the partial derivative desired) is in the 1st weight set
                         if (i == 0):
@@ -218,7 +219,7 @@ def getCostSlopes(inputVals, hiddenVals, output, proutput):
                                                      * getSubsequentWeightsSum(weightSlopes,
                                                                                i, j, o)
                         #if it's the 2nd weight set, j = hidden node index, k = input node index
-                        if (i == 1):
+                        elif (i == 1):
                             #slope function is the partial derivative of the respective
                             weightSlopes[1][j][k] += frstPrtOfPrtlDrvtvs \
                                                      * hiddenVals[0][j] \
@@ -243,13 +244,15 @@ def getPriorNodesSum (hiddenVals, currentWeightLayer, currentInputNode):
     #use the grandparent nodes as a shortcut instead of doing a lot of complicated math
     grandparentNodes = hiddenVals[currentWeightLayer - 2]
     for j in range(len(grandparentNodes)):
-        priorNodesSum += grandparentNodes[i] * weights[currentWeightLayer - 1][currentInputNode][j]
+        priorNodesSum += grandparentNodes[j] * weights[currentWeightLayer - 1][currentInputNode][j]
 
     return priorNodesSum
 
 #gets the sum of the corresponding subsequent weights
 # for the partial derivatives of weights in NN's with more than 1 weight set
 def getSubsequentWeightsSum (weightSlopes, currentWeightLayer, currentResultantNode, currentOutputNode):
+    assert(len(weights) == len(weightSlopes))
+
     subsequentWeightsSum = 0
 
     # loop through all subsequent weight sets
@@ -267,7 +270,7 @@ def getSubsequentWeightsSum (weightSlopes, currentWeightLayer, currentResultantN
                     subsequentWeightsSum += weights[i][j][k]
                 # if it's in the last weight set
                 else:
-                    subsequentWeightsSum += weights[len(weightSlopes) - 1][currentOutputNode][currentResultantNode]
+                    subsequentWeightsSum += weights[-1][currentOutputNode][currentResultantNode]
 
     return subsequentWeightsSum
 
@@ -318,7 +321,7 @@ def performFakeMatrixOperation (m1, operation, m2):
 def train (iterationNum, inputVals):
 
     if (numHiddenLayers > 0):
-        hiddenNodeVals = np.zeros((hiddenLayerSize, numHiddenLayers))
+        hiddenNodeVals = np.zeros((numHiddenLayers, hiddenLayerSize))
 
         #define the first hidden layer
         for i in range(hiddenLayerSize):
@@ -338,7 +341,7 @@ def train (iterationNum, inputVals):
     for i in range(outputSize):
         #calculate output
         if (numHiddenLayers > 0):
-            output[i] = sumWeightedValues(hiddenNodeVals[numHiddenLayers - 1], weights[numHiddenLayers + 1][i]) + bias[i]
+            output[i] = sumWeightedValues(hiddenNodeVals[numHiddenLayers - 1], weights[numHiddenLayers][i]) + bias[i]
         else:
             output[i] = sumWeightedValues(inputVals, weights[0][i]) + bias[i]
 
