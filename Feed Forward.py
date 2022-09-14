@@ -1,24 +1,29 @@
 """
 Agenda:
 ************************************************************************************************************************
-    Expand functionality to have any number of varying size hidden layers (use a 2D array/matrix for layers? (make nodes and layers objects in C# version))
+    Expand functionality to have any number of varying size hidden layers
+    Re-create nodes, layers, weights as objects in C# or Java version)
 """
 
 #A small neural network that learns to find the average of some numbers
 import random
 import numpy as np
+#if I could figure out how to use sympy's partial derivative functionality on MutableDenseNDimArray's, I would,
+# but for now, the best I got is numpy
+import sympy as sp
 
-#most important vars
+
+#Important variables
+#*************************************************************************************************************************************************
 #use inputSize of 2, outputSize of 1, and step size of 10 ** -10 for a perceptron
 
+inputSize = 5
+numHiddenLayers = 1
+hiddenLayerSize = 5
+outputSize = 5
 
-inputSize = 2
-numHiddenLayers = 2
-hiddenLayerSize = 2
-outputSize = 2
-
-stepSize = 10 ** -10
-iterations = 20000
+stepSize = 10 ** -8
+iterations = 50000
 
 maxInValue = 10 ** 3
 
@@ -27,6 +32,30 @@ inputValues = [0] * inputSize
 
 
 def generateWeightsSet():
+    """
+    instantiate the weights matrix, should be referenced by [weightLayerIndex][outputNodeIndex][inputNodeIndex]
+    the first number represents the number of layers
+
+    Ex: for a NN with 3 input nodes, 1 hidden layer with 2 nodes, and 4 output nodes, the arrays should look like this:
+    [
+        #input layer to hidden layer
+        [
+            [w9, w10, w11]
+            [w12, w13, w14]
+        ]
+
+        #hidden layer to output layer weights
+        [
+            [w1, w2]
+            [w3, w4]
+            [w5, w6]
+            [w7, w8]
+        ]
+    ]
+
+    because there's only 1 hidden layer, there will only be 2 weight sets
+    """
+
     newSet = []
 
     if numHiddenLayers <= 0:
@@ -44,30 +73,6 @@ def generateWeightsSet():
 
     return newSet
 
-
-"""
-instantiate the weights matrix, should be referenced by [weightLayerIndex][outputNodeIndex][inputNodeIndex]
-the first number represents the number of layers
-
-Ex: for a NN with 3 input nodes, 1 hidden layer with 2 nodes, and 4 output nodes, the arrays should look like this:
-[
-    #input layer to hidden layer
-    [
-        [w9, w10, w11]
-        [w12, w13, w14]
-    ]
-
-    #hidden layer to output layer weights
-    [
-        [w1, w2]
-        [w3, w4]
-        [w5, w6]
-        [w7, w8]
-    ]
-]
-
-because there's only 1 hidden layer, there will only be 2 weight sets
-"""
 weights = generateWeightsSet()
 
 #this loop should scale with the number of weight sets and thus hidden layers
@@ -82,11 +87,16 @@ for i in range(len(weights)):
 
 #for debugging
 OGWeights = str(weights)
+eonSize = 1000
 
 bias = [0.0] * outputSize
 proutput = [0.0] * outputSize
 output = [0.0] * outputSize
 
+
+
+#Helper functions
+#************************************************************************************************************************************************
 
 #set guiding function to train 1 output node
 def getAvg (inputVals):
@@ -115,185 +125,6 @@ def sumWeightedValues(vals, weights):
 def getCost(output, proutput):
     return (output - proutput) ** 2
 
-#inputVals = list of the input values
-#output = list of output values produced by NN
-#proutput = list of target output values
-def getCostSlopes(inputVals, hiddenVals, output, proutput):
-    #make sure the arguments are right
-    assert(len(inputVals) == inputSize)
-    assert(hiddenVals is None or len(hiddenVals) == numHiddenLayers)
-    assert(len(output) == outputSize)
-    assert(len(proutput) == outputSize)
-    assert(len(weights) > 0)
-
-    #define a multi-dimensional array to store the slopes at the weights in sets corresponding to each output node,
-    #   should be referenced by [weightLayerIndex][resultantNodeIndex][inputNodeIndex]
-    weightSlopes = generateWeightsSet()
-
-    """
-        In:   Hidden:   Out:
-        O ------ O ------ O
-         \      / \      /
-          \    /   \    /
-           \  /     \  /
-            \/       \/
-            /\       /\
-           /  \     /  \
-          /    \   /    \
-         /      \ /      \
-        O ------ O ------ O
-        in2 wi22 hidden2 wh22 out2
-        
-    calculate the partial derivatives for all weights:
-        notation:
-            the letter after each w signifies the weight set,
-            the first number the resultant node number,
-            the second number the input node number
-            
-        partial derivatives in the first weight set:
-            cost = (output1 - proutput1) ** 2
-            output1 = hidden1 * wh11 + hidden2 * wh12 + ... + b
-            output1 = (in1 * wi11 + in2 * wi12 + ...) * wh11 + (in1 * wi21 + in2 * wi22 + ...) * wh12 + ...
-            d/dwi11(output1) = in1 * wh11
-            and d/dwi23(output4) = in3 * wh42
-            thus d/dwi11(cost1) = 2 * (output1 - proutput1) * (in1 * wh11)
-            thus d/dwi1...(cost1) (partial derivative of the cost for output node 1 with respect to any weight connected
-                to hidden node 1 in the 1st weights layer)
-                = 2 * (output1 - proutput1) * (in... * wh1...)
-            thus d/dwi...(cost1) (partial derivative of the cost for output node 1 with respect to any weight connected
-                to any hidden node in the 1st weights layer)
-                = 2 * (output1 - proutput1) * (in... * wh...)
-            
-        partial derivatives in the second weight set:
-            cost = (output - proutput) ** 2
-            output1 = hidden1 * wh11 + hidden2 * wh12 + ... + b
-            d/dwh11(output1) = hidden1
-            thus d/dwh11(cost1) = 2 * (output1 - proutput1) * hidden1
-            thus d/dwh11(cost1) = 2 * (output1 - proutput1) * (in1 * wi11 + in2 * wi12 + ...)
-            and d/dwh1...(cost1) (partial derivative of the cost for output node 1 with respect to any weight connected
-                to said output node in the 2nd weights layer)
-                = 2 * (output1 - proutput1) * (in1 * wi...1 + in2 * wi...2 + ...)
-            thus d/dwh...(cost...)  (partial derivative of the cost for any output node with respect to any weight
-                connected to said output node in the 2nd weights layer) (hidden.. used for simplicity and references
-                the hidden node linked to the desired output node by the weight in question)
-                = 2 * (output... - proutput...) * hidden...
-    """
-
-    numWeightSets = len(weights)
-
-    #iterate through all the output nodes
-    for o in range(outputSize):
-        frstPrtOfPrtlDrvtvs = 2 * (output[o] - proutput[o])
-
-        #iterate through all the weight sets
-        for i in range(len(weightSlopes)):
-            #iterate through all the sets in a layer (corresponding to resultant nodes)
-            for j in range(len(weightSlopes[i])):
-                #iterate through all the weights in each set
-                for k in range(len(weightSlopes[i][j])):
-
-                    #store each weight's corresponding slope based on the cost function
-                    # slope function is the partial derivative of the respective
-                    if (numWeightSets == 1):
-                        weightSlopes[0][o][k] += frstPrtOfPrtlDrvtvs * inputVals[k]
-
-                    elif (numWeightSets == 2):
-                        # if it's in the first weight set, j = hidden node index, k = input node index
-                        if (i == 0):
-                            #slope function is the partial derivative of the respective
-                            weightSlopes[0][j][k] += frstPrtOfPrtlDrvtvs * inputVals[k] * weights[1][o][j]
-                        #if it's the last weight set
-                        else:
-                            weightSlopes[1][j][k] += frstPrtOfPrtlDrvtvs * hiddenVals[0][k]
-
-                    #if there're more than 2 weight sets
-                    #****************************************************************************************************
-                    #there're mistakes in your generalization
-                    #****************************************************************************************************
-                    else:
-                        #if it (the partial derivative desired) is in the 1st weight set
-                        if (i == 0):
-                            #slope function is the partial derivative of the cost function with respect to the weights
-                            weightSlopes[0][j][k] += frstPrtOfPrtlDrvtvs\
-                                                     * inputVals[k]\
-                                                     * getSubsequentWeightsSum(weightSlopes,
-                                                                               i, j, o)
-                        #if it's the 2nd weight set, j = hidden node index, k = input node index
-                        elif (i == 1):
-                            #slope function is the partial derivative of the respective
-                            weightSlopes[1][j][k] += frstPrtOfPrtlDrvtvs \
-                                                     * hiddenVals[0][j] \
-                                                     * getSubsequentWeightsSum(weightSlopes,
-                                                                               i, j, o)
-                        #if it's in any subsequent weight set,
-                        else:
-                            weightSlopes[i][j][k] += frstPrtOfPrtlDrvtvs \
-                                                     * getPriorNodesSum(hiddenVals, i, k) \
-                                                     * getSubsequentWeightsSum(weightSlopes,
-                                                                               i, j, o)
-                            # weightSlopes[1][j][k] += frstPrtOfPrtlDrvtvs * hiddenVals[i - 2][k]
-                        # weightSlopes[0][j][k] += frstPrtOfPrtlDrvtvs * inputVals[k] * weights[1][o][j]
-
-    return weightSlopes
-
-#gets the sum of the corresponding previous nodes and their weights
-# for the partial derivatives of weights in NN's with more than 1 weight set
-def getPriorNodesSum (hiddenVals, currentWeightLayer, currentInputNode):
-    priorNodesSum = 0
-
-    #use the grandparent nodes as a shortcut instead of doing a lot of complicated math
-    grandparentNodes = hiddenVals[currentWeightLayer - 2]
-    for j in range(len(grandparentNodes)):
-        priorNodesSum += grandparentNodes[j] * weights[currentWeightLayer - 1][currentInputNode][j]
-
-    return priorNodesSum
-
-#gets the sum of the corresponding subsequent weights
-# for the partial derivatives of weights in NN's with more than 1 weight set
-def getSubsequentWeightsSum (weightSlopes, currentWeightLayer, currentResultantNode, currentOutputNode):
-    assert(len(weights) == len(weightSlopes))
-
-    subsequentWeightsSum = 0
-
-    # loop through all subsequent weight sets
-    for i in range(1, len(weightSlopes)):
-        # iterate through all the lists/sets of weights in a subsequent weight set/layer (corresponding to resultant nodes)
-        for j in range(len(weightSlopes[i])):
-            # iterate through all the weights in each set
-            for k in range(len(weightSlopes[i][j])):
-                # weights[weight set/layer index][resultant node index][input node index]
-                # if it's the 1st subsequent weight set
-                if (i == currentWeightLayer + 1):
-                    subsequentWeightsSum += weights[i][j][currentResultantNode]
-                # if it's in any intermediate weight sets
-                elif (i < len(weightSlopes) - 2):
-                    subsequentWeightsSum += weights[i][j][k]
-                # if it's in the last weight set
-                else:
-                    subsequentWeightsSum += weights[-1][currentOutputNode][currentResultantNode]
-
-    return subsequentWeightsSum
-
-def backpropagate (weights, slopes, bias):
-    #make sure the arguments are right
-
-    assert(len(weights) == numHiddenLayers + 1)
-    assert(len(slopes) == numHiddenLayers + 1)
-    assert(len(bias) == outputSize)
-
-    #modify every weight by its corresponding slope based on the cost function
-    #for each weight set
-    for i in range(len(weights)):
-        #for each array of weights corresponding to resultant node j
-        for j in range(len(weights[i])):
-            #for each weight in said array, which corresponds to each input node k
-            for k in range(len(weights[i][j])):
-                weights[i][j][k] -= stepSize * slopes[i][j][k]
-
-    #modify the bias by its partial derivative
-    for k in range(outputSize):
-        bias[k] -= stepSize * 2 * (output[k] - proutput[k])
-
 #assumes m1 and m2 are lists of the same length
 def performFakeMatrixOperation (m1, operation, m2):
     resultingMatrix = [0.0] * len(m1)
@@ -317,8 +148,146 @@ def performFakeMatrixOperation (m1, operation, m2):
     return resultingMatrix
 
 
+
+#Meat of the program
+#************************************************************************************************************************************************
+
+#inputVals = list of the input values
+#output = list of output values produced by NN
+#proutput = list of target output values
+def getCostSlopes(inputVals, hiddenVals, output, proutput):
+    #make sure the arguments are right
+    assert(len(inputVals) == inputSize)
+    assert(hiddenVals is None or len(hiddenVals) == numHiddenLayers)
+    assert(len(output) == outputSize)
+    assert(len(proutput) == outputSize)
+    assert(len(weights) > 0)
+
+    weightSlopes = generateWeightsSet()
+
+    """
+        In:   Hidden:   Out:
+        O ------ O ------ O
+         \      / \      /
+          \    /   \    /
+           \  /     \  /
+            \/       \/
+            /\       /\
+           /  \     /  \
+          /    \   /    \
+         /      \ /      \
+        O ------ O ------ O
+    """
+
+    numWeightSets = len(weights)
+
+    #iterate through all the output nodes
+    for o in range(outputSize):
+        frstPrtOfPrtlDrvtvs = 2 * (output[o] - proutput[o])
+        #iterate through all the weight sets
+        for i in range(numWeightSets):
+            #iterate through all the sets in a layer (corresponding to resultant nodes)
+            for j in range(len(weightSlopes[i])):
+                #iterate through all the weights in each set (corresponding to input nodes)
+                for k in range(len(weightSlopes[i][j])):
+
+                    #store each weight's corresponding slope based on the cost function
+                    # slope function is the partial derivative of the respective
+                    if (numWeightSets == 1):    #ie if there're no hidden layers
+                        weightSlopes[0][o][k] += frstPrtOfPrtlDrvtvs * inputVals[k]
+
+                    elif (numWeightSets == 2):  #ie if there's 1 hidden layer
+                        # if it's in the first weight set, j = hidden node index, k = input node index
+                        if (i == 0):
+                            #slope function is the partial derivative of the respective
+                            weightSlopes[0][j][k] += frstPrtOfPrtlDrvtvs * inputVals[k] * weights[1][o][j]
+                        #if it's the last weight set
+                        else:
+                            weightSlopes[1][j][k] += frstPrtOfPrtlDrvtvs * hiddenVals[0][k]
+
+                    # if there're more than 2 weight sets; ie if there're 2 or more hidden layers
+                    else:
+                        #if it (the partial derivative desired) is in the 1st weight set
+                        if (i == 0):
+                            #slope function is the partial derivative of the cost function with respect to the weights
+                            weightSlopes[0][j][k] += frstPrtOfPrtlDrvtvs\
+                                                     * inputVals[k]\
+                                                     * getSubsequentWeightsSum(weightSlopes, i, j, k, o)
+                        #if it's the 2nd weight set, j = hidden node index, k = input node index
+                        elif (i == 1):
+                            #slope function is the partial derivative of the respective
+                            weightSlopes[1][j][k] += frstPrtOfPrtlDrvtvs \
+                                                     * hiddenVals[0][k] \
+                                                     * getSubsequentWeightsSum(weightSlopes,
+                                                                               i, j, k, o)
+                        #if it's in any subsequent weight set,
+                        else:
+                            # getPriorNodesSum(hiddenVals, i, k) \
+                            weightSlopes[i][j][k] += frstPrtOfPrtlDrvtvs \
+                                                     * hiddenVals[i - 1][k] \
+                                                     * getSubsequentWeightsSum(weightSlopes,
+                                                                               i, j, k, o)
+
+    return weightSlopes
+
+#gets the sum of the corresponding previous nodes and their weights
+# for the partial derivatives of weights in NN's with more than 1 weight set
+def getPriorNodesSum (hiddenVals, currentWeightLayer, currentInputNode):
+    priorNodesSum = 0
+
+    #use the grandparent nodes as a shortcut instead of doing a lot of complicated math
+    grandparentNodes = hiddenVals[currentWeightLayer - 2]
+    for j in range(len(grandparentNodes)):
+        priorNodesSum += grandparentNodes[j] * weights[currentWeightLayer - 1][currentInputNode][j]
+
+    return priorNodesSum
+
+#gets the sum of the corresponding subsequent weights
+# for the partial derivatives of weights in NN's with more than 1 weight set
+def getSubsequentWeightsSum (weightSlopes, currentWeightLayer, currentResultantNode, currentInputNode, currentOutputNode):
+    assert(len(weights) == len(weightSlopes))
+
+    #see getSubsequentWeightsSum intractable problem reasoning doc
+
+    # #if it's for a weight in an intermediate weight set
+    # if (currentWeightLayer < len(weightSlopes) - 1):
+    #     # loop through all subsequent weight sets
+    #     #for i in range(currentWeightLayer + 1, len(weightSlopes)):
+    #
+    #     # weights[weight set/layer index][resultant node index][input node index]
+    #     print("The problem of finding all the weights' slopes is intractable without a means of easily calculating"
+    #               " multiple partial derivatives")
+    #
+    #     return 1
+    #
+    # #if it's for a weight in the last weight set (ie it has no subsequent weight sets)
+    # else:
+    #     return 1
+    return 1
+
+def backpropagate (weights, slopes, bias):
+    #make sure the arguments are right
+
+    assert(len(weights) == numHiddenLayers + 1)
+    assert(len(slopes) == numHiddenLayers + 1)
+    assert(len(bias) == outputSize)
+
+    #modify every weight by its corresponding slope based on the cost function
+    #for each weight set
+    for i in range(len(weights)):
+        #for each array of weights corresponding to resultant node j
+        for j in range(len(weights[i])):
+            #for each weight in said array, which corresponds to each input node k
+            for k in range(len(weights[i][j])):
+                weights[i][j][k] -= stepSize * slopes[i][j][k]
+
+    #modify the bias by its partial derivative
+    for k in range(outputSize):
+        bias[k] -= stepSize * 2 * (output[k] - proutput[k])
+
 #define the training procedure for 1 round of training
-def train (iterationNum, inputVals):
+def train (iterationNum, inputVals, sumDiff):
+    totalDiff = 0
 
     if (numHiddenLayers > 0):
         hiddenNodeVals = np.zeros((numHiddenLayers, hiddenLayerSize))
@@ -335,7 +304,7 @@ def train (iterationNum, inputVals):
                 for j in range(hiddenLayerSize):
                     #set the values of the nodes in the next hidden layer to the sum of the connected,
                     #weighted products of the previous layer's nodes
-                    hiddenNodeVals[i][j] = sumWeightedValues(hiddenNodeVals[i - 1], weights[0][i])
+                    hiddenNodeVals[i][j] = sumWeightedValues(hiddenNodeVals[i - 1], weights[i + 1][i])
 
     #calculate values of output nodes
     for i in range(outputSize):
@@ -349,7 +318,6 @@ def train (iterationNum, inputVals):
         proutput[i] = getAvg(inputVals)
 
     #get the slopes for all weights
-    #fix this so it works with no hidden layers
     if (numHiddenLayers > 0):
         weightSlopes = getCostSlopes(inputVals, hiddenNodeVals, output, proutput)
     else:
@@ -358,30 +326,41 @@ def train (iterationNum, inputVals):
     #backpropagate
     backpropagate(weights, weightSlopes, bias)
 
+    #for debugging
+    for i in range(outputSize):
+        sumDiff += output[i] - proutput[i]
+
     #Print stuff every few iterations
-    if (iterationNum % 100 == 0):
+    if (iterationNum % eonSize == 0):
         print("Running another round of training... (Iteration " + str(iterationNum) + ")\n"
               "******************************************************")
 
         # Print input values
         print("Input values: " + str(inputVals))
-        print("Original weights: \n\t\t" + OGWeights)
-        print("Weights (First " + str(inputSize * hiddenLayerSize) + " values are for the weights of the connections between the first 2 layers):\n\t\t" + str(weights))
+        #print("Original weights: \n\t\t" + OGWeights)
+        #print("Weights (First " + str(inputSize * hiddenLayerSize) + " values are for the weights of the connections between the first 2 layers):\n\t\t" + str(weights))
         print("Bias: " + str(bias))
 
         # print output/backpropagation info
         print("Expected output: " + str(getAvg(inputVals)))
         print("Actual output: " + str(output))
         print("Difference: " + str(performFakeMatrixOperation(proutput, "-", output)))
-
-        print ("Backpropagating...")
-        print("Weight slopes: " + str(weightSlopes))
+        print("Average difference over the last eon: " + str(sumDiff/(eonSize * outputSize)))
+        sumDiff = 0
+        #print("Weight slopes: " + str(weightSlopes))
 
         #print an empty line to make the debugging look nice :)
         print("")
 
+    return sumDiff
+
+
 #run the NN
+#************************************************************************************************************************************************
 if __name__ == '__main__':
+    #for debugging
+    totalDiff = 0
+
     print('Starting program...')
 
     print("Training...")
@@ -389,13 +368,12 @@ if __name__ == '__main__':
 
         #define the input values
         for j in range(0, inputSize):
-            inputValues[j] = 1000   #random.randint(0, maxInValue)
+            inputValues[j] = random.randint(0, maxInValue)
 
-        train(i, inputValues)
+        totalDiff = train(i, inputValues, totalDiff)
 """
 Tutorials and sources used to build this:
 ************************************************************************************************************************
     This guy's tutorials are how I learned to build the perceptron:     https://www.youtube.com/watch?v=ZzWaow1Rvho&list=PLxt59R_fWVzT9bDxA76AHm3ig0Gg9S3So
     This helped with the weird, dumb stuff with arrays:                 https://stackoverflow.com/questions/72585703/modifying-2d-array-python
-    
 """
