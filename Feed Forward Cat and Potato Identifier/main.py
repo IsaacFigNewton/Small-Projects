@@ -3,18 +3,17 @@ import random
 import numpy as np
 
 #To do:
-#   Fix sigmoid() and getLoss so you don't have to compensate for divide-by-zero errors
 #   Fix partial derivatives for weight and bias layers
 #   Find out why you keep getting "IndexError: index 1 is out of bounds for axis 0 with size 1" for line 74
 #       when you try to correct it
 
 
 
-#Important vars here
+#Important variables
 #***********************************************************************************************************************
 
-epochCount = 20
-trainingSetSize = 1000
+epochCount = 1000
+trainingSetSize = 100
 inCount = 5
 # represents the number of hidden layers + the input layer
 # numLayers = 2
@@ -22,7 +21,7 @@ inCount = 5
 hiddenCount = 4
 # the number of output nodes
 outCount = 3
-learningRate = 10**-6
+learningRate = 10**-1
 
 #input vector; 100 sets of 5 input values (age (years), length (cm), width (cm), height (cm), mass (g))
 A0 = np.zeros((inCount, trainingSetSize))
@@ -36,33 +35,23 @@ B0 = np.zeros((hiddenCount, 1))
 B1 = np.zeros((outCount, 1))
 db0 = np.zeros((hiddenCount, 1))
 db1 = np.zeros((outCount, 1))
+
 #output vectors
+# the pre-activation function outputs for each layer
+Z0 = np.zeros((hiddenCount, trainingSetSize))
+Z1 = np.zeros((outCount, trainingSetSize))
+dz0 = np.zeros((hiddenCount, trainingSetSize))
+dz1 = np.zeros((outCount, trainingSetSize))
 # the projected outputs for each layer
 A1 = np.zeros((hiddenCount, trainingSetSize))
 A2 = np.zeros((outCount, trainingSetSize))
 # the desired output for the last A layer
 #                                                                        dimensions should be in reverse order
 Y = np.zeros((trainingSetSize, outCount))
-dz = np.zeros((outCount, trainingSetSize))
 
 
-
-#Important functions here
+#Set the input and output
 #***********************************************************************************************************************
-
-def sigmoid(x):
-    # try:
-    if (x > 100):
-        return 1 - 10**-10
-    elif (x < -100):
-        return 0 + 10**-10
-    else:
-        return 1.0 / (1 + math.exp(-x))
-
-    # except OverflowError:
-    #     return float('inf')
-
-vectorizedSigmoid = np.vectorize(sigmoid)
 
 def setIOVals():
     #choose which output should be "turned on", i.e. what the output should be for each training set
@@ -130,14 +119,75 @@ def setIOVals():
 
     # print("\nY after setting output node states:\n", Y)
 
+# Various activation functions
+# **********************************************************************************************************************
 
+def sigmoid(x):
+    # try:
+    if (x < -100):
+        return 1 - 10**-10
+    # elif (x < -100):
+    #     return 0 + 10**-10
+    else:
+        return 1.0 / (1 + math.exp(-x))
+
+    # except OverflowError:
+    #     return float('inf')
+
+vectorizedSigmoid = np.vectorize(sigmoid)
+
+def dSigmoid(x):
+    return sigmoid(x) * (1 - sigmoid(x))
+
+vectorizedDSigmoid = np.vectorize(dSigmoid)
+
+def tanh(x):
+    # try:
+    if (x < -100):
+        return 1 - 10**-10
+    # elif (x < -100):
+    #     return 0 + 10**-10
+    else:
+        return 1.0 / (1 + math.exp(-x))
+
+    # except OverflowError:
+    #     return float('inf')
+
+vectorizedTanh = np.vectorize(tanh)
+
+def dTanh(x):
+    return 1 - (tanh(x)) ** 2
+
+vectorizedDTanh = np.vectorize(dTanh)
+
+def ReLU(x):
+    return np.max(0, x)
+
+vectorizedReLU = np.vectorize(ReLU)
+
+def dReLU(x):
+    x[x > 0] = 1
+    x[x <= 0] = 0
+    return x
+
+vectorizedDReLU = np.vectorize(dReLU)
+
+# set the activation function for hidden layers
+def g(x):
+    return ReLU(x)
+
+def dg(x):
+    return dReLU(x)
+
+# Other functions here
+# **********************************************************************************************************************
 
 def getLoss(a, y):
-    try:
-        # print(a)
+    # try:
+    #     print(a)
         return -(y * np.log(a) + (1 - y) * np.log(1 - a + 10**-10))
-    except RuntimeWarning:
-        return float('nan')
+    # except RuntimeWarning:
+    #     return float('nan')
 
 def getCost(loss, m):
     return np.sum(loss)/m
@@ -159,8 +209,10 @@ if __name__ == "__main__":
         assert(np.shape(B1) == (outCount, 1))
 
         #get predicted outputs
-        A1 = vectorizedSigmoid(np.dot(np.transpose(W0), A0) + B0)
-        A2 = vectorizedSigmoid(np.dot(np.transpose(W1), A1) + B1)
+        Z0 = np.dot(np.transpose(W0), A0) + B0
+        Z1 = np.dot(np.transpose(W1), A1) + B1
+        A1 = vectorizedSigmoid(Z0)
+        A2 = vectorizedSigmoid(Z1)
         # print("\nA:\n", A)
 
         assert(np.shape(A1) == (hiddenCount, trainingSetSize))
@@ -170,28 +222,37 @@ if __name__ == "__main__":
         # *************************************************************************************************************
         #get dz
         #                                                           shouldn't need to do y.transpose()
-        dz = A2 - Y.transpose()
+        dz1 = A2 - Y.transpose()
 
-        #find costs and set dw's and db's appropriately
         #                                                   when you fix y.transpose(), you won't need dz.transpose here
-        dw1 = np.dot(A1, dz.transpose()) / trainingSetSize
-        assert(np.shape(dw0) == (inCount, hiddenCount))
-        dw1 = np.dot(A1, dz.transpose()) / trainingSetSize
+        dw1 = np.dot(A1, dz1.transpose()) / trainingSetSize
         assert(np.shape(dw1) == (hiddenCount, outCount))
 
-        #add up the values in each column
-        # db0 = np.sum(dz, axis=1) / trainingSetSize
-        db1 = np.sum(dz, axis=1) / trainingSetSize
+        # add up the values in each column
+        db1 = np.sum(dz1, axis=1) / trainingSetSize
         # gotta reshape db's because they've got shapes of (outCount,)
-        # db0 = np.reshape(db0, (hiddenCount, 1))
         db1 = np.reshape(db1, (outCount, 1))
 
+        dz0 = np.dot(W1, dz1) * dg(Z0)
 
+        #                                                   when you fix y.transpose(), you won't need dz.transpose here
+        dw0 = np.dot(A0, dz0.transpose()) / trainingSetSize
+        assert(np.shape(dw0) == (inCount, hiddenCount))
+
+        # add up the values in each column
+        db0 = np.sum(dz0, axis=1) / trainingSetSize
+        # gotta reshape db's because they've got shapes of (outCount,)
+        db0 = np.reshape(db0, (hiddenCount, 1))
+
+
+        # descend the gradient
         W0 = W0 - learningRate * dw0
         W1 = W1 - learningRate * dw1
         B0 = B0 - learningRate * db0
         B1 = B1 - learningRate * db1
 
+        # print("\nW[0]:\n", W0)
+        # print("\nW[1]:\n", W1)
         print("\nAverage Loss: ", getCost(getLoss(A2, Y.transpose()), trainingSetSize))
 
 #Sauces:
