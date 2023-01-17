@@ -1,53 +1,58 @@
 import math
 import random
 import numpy as np
+import matplotlib.pyplot as mp
+import activation_functions as af
 
 #To do:
-#   Fix partial derivatives for weight and bias layers
-#   Find out why you keep getting "IndexError: index 1 is out of bounds for axis 0 with size 1" for line 74
-#       when you try to correct it
-
+#   Create void functions to set layer sizes more easily
+#   Implement matplotlib or something to graph average loss each epoch
 
 
 #Important variables
 #***********************************************************************************************************************
 
-epochCount = 1000
+epochCount = 25
 trainingSetSize = 100
-inCount = 5
-# represents the number of hidden layers + the input layer
-# numLayers = 2
-# the number of hidden layer nodes
-hiddenCount = 4
+# the number of nodes in each layer (1st and last are I/O layers)
+layerNodeCounts = [5, 4, 4, 3]
 # the number of output nodes
-outCount = 3
-learningRate = 10**-1
+learningRate = 10**3
 
 #input vector; 100 sets of 5 input values (age (years), length (cm), width (cm), height (cm), mass (g))
-A0 = np.zeros((inCount, trainingSetSize))
-#weight vector; 5 input x 3 output
-W0 = np.random.randint(-1000, 1000, (inCount, hiddenCount)) / 1000
-W1 = np.random.randint(-1000, 1000, (hiddenCount, outCount)) / 1000
-dw0 = np.zeros((inCount, hiddenCount))
-dw1 = np.zeros((hiddenCount, outCount))
+#as well as the projected outputs for each layer
+A = [np.zeros((layerNodeCounts[0], trainingSetSize)),
+     np.zeros((layerNodeCounts[1], trainingSetSize)),
+     np.zeros((layerNodeCounts[2], trainingSetSize)),
+     np.zeros((layerNodeCounts[3], trainingSetSize))]
+
+#weight vectors
+W = [np.random.randint(-1000, 1000, (layerNodeCounts[0], layerNodeCounts[1])) / 1000,
+     np.random.randint(-1000, 1000, (layerNodeCounts[1], layerNodeCounts[2])) / 1000,
+     np.random.randint(-1000, 1000, (layerNodeCounts[2], layerNodeCounts[3])) / 1000]
+dW = [np.zeros((layerNodeCounts[0], layerNodeCounts[1])),
+      np.zeros((layerNodeCounts[1], layerNodeCounts[2])),
+      np.zeros((layerNodeCounts[2], layerNodeCounts[3]))]
+
 #biases
-B0 = np.zeros((hiddenCount, 1))
-B1 = np.zeros((outCount, 1))
-db0 = np.zeros((hiddenCount, 1))
-db1 = np.zeros((outCount, 1))
+B = [np.zeros((layerNodeCounts[1], 1)),
+     np.zeros((layerNodeCounts[2], 1)),
+     np.zeros((layerNodeCounts[3], 1))]
+dB = [np.zeros((layerNodeCounts[1], 1)),
+      np.zeros((layerNodeCounts[2], 1)),
+      np.zeros((layerNodeCounts[3], 1))]
 
 #output vectors
 # the pre-activation function outputs for each layer
-Z0 = np.zeros((hiddenCount, trainingSetSize))
-Z1 = np.zeros((outCount, trainingSetSize))
-dz0 = np.zeros((hiddenCount, trainingSetSize))
-dz1 = np.zeros((outCount, trainingSetSize))
-# the projected outputs for each layer
-A1 = np.zeros((hiddenCount, trainingSetSize))
-A2 = np.zeros((outCount, trainingSetSize))
+Z = [np.zeros((layerNodeCounts[1], trainingSetSize)),
+     np.zeros((layerNodeCounts[2], trainingSetSize)),
+     np.zeros((layerNodeCounts[3], trainingSetSize))]
+dZ = [np.zeros((layerNodeCounts[1], trainingSetSize)),
+      np.zeros((layerNodeCounts[2], trainingSetSize)),
+      np.zeros((layerNodeCounts[3], trainingSetSize))]
+
 # the desired output for the last A layer
-#                                                                        dimensions should be in reverse order
-Y = np.zeros((trainingSetSize, outCount))
+Y = np.zeros((trainingSetSize, layerNodeCounts[-1]))
 
 
 #Set the input and output
@@ -67,33 +72,33 @@ def setIOVals():
         #if it's not a cat or a potato
         if (yIndices[i] == 0):
             #set random age
-            A0[0][i] = random.uniform(10**-3, 10**5)
+            A[0][0][i] = random.uniform(10**-3, 10**5)
             #set random length
-            A0[1][i] = random.uniform(10**-3, 10**5)
+            A[0][1][i] = random.uniform(10**-3, 10**5)
             #set random width
-            A0[2][i] = random.uniform(10**-3, 10**5)
+            A[0][2][i] = random.uniform(10**-3, 10**5)
             #set random height
-            A0[3][i] = random.uniform(10**-3, 10**5)
+            A[0][3][i] = random.uniform(10**-3, 10**5)
             #set random mass
-            A0[4][i] = random.uniform(10**-3, 10**2)
+            A[0][4][i] = random.uniform(10**-3, 10**2)
 
         # if it's a cat
         if (yIndices[i] == 1):
             # set random age
-            A0[0][i] = random.uniform(10 ** -3, 27)
+            A[0][0][i] = random.uniform(10 ** -3, 27)
             # based on an average adulthood age of 8.5yrs +- 1.5yrs
             growthVariability = np.random.normal(0, 0.176)
             #Desmos very good
-            amtGrwthCmpltd = sigmoid((A0[0][i] - (0.7 + growthVariability) * 5) / (0.7 + growthVariability))
+            amtGrwthCmpltd = af.sigmoid((A[0][0][i] - (0.7 + growthVariability) * 5) / (0.7 + growthVariability))
 
             # set random length
-            A0[1][i] = abs(np.random.normal(8, 2) + amtGrwthCmpltd * np.random.normal(38, 5))
+            A[0][1][i] = abs(np.random.normal(8, 2) + amtGrwthCmpltd * np.random.normal(38, 5))
             # set random width
-            A0[2][i] = abs(np.random.normal(3, 1) + amtGrwthCmpltd * np.random.normal(10, 4))
+            A[0][2][i] = abs(np.random.normal(3, 1) + amtGrwthCmpltd * np.random.normal(10, 4))
             # set random height
-            A0[3][i] = abs(np.random.normal(0.5, 0.1) + amtGrwthCmpltd * np.random.normal(25, 2.5))
+            A[0][3][i] = abs(np.random.normal(0.5, 0.1) + amtGrwthCmpltd * np.random.normal(25, 2.5))
             # set random mass
-            A0[4][i] = abs(np.random.normal(114, 28) + amtGrwthCmpltd * (np.random.normal(4900, 1500) + 1000))
+            A[0][4][i] = abs(np.random.normal(114, 28) + amtGrwthCmpltd * (np.random.normal(4900, 1500) + 1000))
 
             # print("\nCat stats: ", X[i], "\n")
 
@@ -101,86 +106,33 @@ def setIOVals():
         if (yIndices[i] == 2):
             # set random age
             maxAge = np.random.normal(1.0 / 6, 1.0 / 12)
-            A0[0][i] = random.uniform(10 ** -3, maxAge)
+            A[0][0][i] = random.uniform(10 ** -3, maxAge)
             # based on yukon gold potatoes' an average adulthood age of 125 days +- 15 days
             growthVariability = np.random.normal(0, 0.0033)
-            amtGrwthCmpltd = sigmoid((A0[0][i] - (0.028 + growthVariability) * 5) / (0.028 + growthVariability))
+            amtGrwthCmpltd = af.sigmoid((A[0][0][i] - (0.028 + growthVariability) * 5) / (0.028 + growthVariability))
 
             # set semi-random length
-            A0[1][i] = abs(amtGrwthCmpltd * np.random.normal(6.5, 2.5))
+            A[0][1][i] = abs(amtGrwthCmpltd * np.random.normal(6.5, 2.5))
             # set semi-random width
-            A0[2][i] = abs(A0[1][i] + amtGrwthCmpltd * np.random.normal(0, 4))
+            A[0][2][i] = abs(A[0][1][i] + amtGrwthCmpltd * np.random.normal(0, 4))
             # set semi-random height
-            A0[3][i] = abs(A0[1][i] + amtGrwthCmpltd * np.random.normal(0, 2.5))
+            A[0][3][i] = abs(A[0][1][i] + amtGrwthCmpltd * np.random.normal(0, 2.5))
             # mass = volume of ellipsoid potato * 1.08g/cm^3
-            A0[4][i] = abs(4.0/3 * math.pi * A0[1][i] * A0[2][i] * A0[3][i] * 1.08)
+            A[0][4][i] = abs(4.0/3 * math.pi * A[0][1][i] * A[0][2][i] * A[0][3][i] * 1.08)
 
             # print("\nPotato stats: ", X[i], "\n")
 
     # print("\nY after setting output node states:\n", Y)
 
-# Various activation functions
+
+# Important functions here
 # **********************************************************************************************************************
-
-def sigmoid(x):
-    # try:
-    if (x < -100):
-        return 1 - 10**-10
-    # elif (x < -100):
-    #     return 0 + 10**-10
-    else:
-        return 1.0 / (1 + math.exp(-x))
-
-    # except OverflowError:
-    #     return float('inf')
-
-vectorizedSigmoid = np.vectorize(sigmoid)
-
-def dSigmoid(x):
-    return sigmoid(x) * (1 - sigmoid(x))
-
-vectorizedDSigmoid = np.vectorize(dSigmoid)
-
-def tanh(x):
-    # try:
-    if (x < -100):
-        return 1 - 10**-10
-    # elif (x < -100):
-    #     return 0 + 10**-10
-    else:
-        return 1.0 / (1 + math.exp(-x))
-
-    # except OverflowError:
-    #     return float('inf')
-
-vectorizedTanh = np.vectorize(tanh)
-
-def dTanh(x):
-    return 1 - (tanh(x)) ** 2
-
-vectorizedDTanh = np.vectorize(dTanh)
-
-def ReLU(x):
-    return np.max(0, x)
-
-vectorizedReLU = np.vectorize(ReLU)
-
-def dReLU(x):
-    x[x > 0] = 1
-    x[x <= 0] = 0
-    return x
-
-vectorizedDReLU = np.vectorize(dReLU)
-
 # set the activation function for hidden layers
 def g(x):
-    return ReLU(x)
+    return af.ReLU(x)
 
 def dg(x):
-    return dReLU(x)
-
-# Other functions here
-# **********************************************************************************************************************
+    return af.dReLU(x)
 
 def getLoss(a, y):
     # try:
@@ -196,66 +148,66 @@ def dz(a, y):
     return a - y
 
 
-
 #Main function here
 #***********************************************************************************************************************
 if __name__ == "__main__":
+    averageLosses = []
+
     for i in range(epochCount):
         # propagate forward
         # *************************************************************************************************************
         setIOVals()
 
+        assert(np.shape(B[1]) == (layerNodeCounts[2], 1))
 
-        assert(np.shape(B1) == (outCount, 1))
+        #get predicted outputs for each hidden and output layer
+        for i in range(len(Z)):
+            Z[i] = np.dot(np.transpose(W[i]), A[i]) + B[i]
+            A[i + 1] = af.vectorizedSigmoid(Z[i])
+            # print("\nA:\n", A)
 
-        #get predicted outputs
-        Z0 = np.dot(np.transpose(W0), A0) + B0
-        Z1 = np.dot(np.transpose(W1), A1) + B1
-        A1 = vectorizedSigmoid(Z0)
-        A2 = vectorizedSigmoid(Z1)
-        # print("\nA:\n", A)
+            assert(np.shape(A[i + 1]) == (layerNodeCounts[i + 1], trainingSetSize))
 
-        assert(np.shape(A1) == (hiddenCount, trainingSetSize))
-        assert(np.shape(A2) == (outCount, trainingSetSize))
 
         # backpropagate
         # *************************************************************************************************************
-        #get dz
-        #                                                           shouldn't need to do y.transpose()
-        dz1 = A2 - Y.transpose()
+        #get dz in last layer
+        dZ[-1] = A[-1] - Y.transpose()
+        
+        for i in range(len(layerNodeCounts) - 2, -1, -1):
+            dW[i] = np.dot(A[i], dZ[i].transpose()) / trainingSetSize
+            assert(np.shape(dW[i]) == (layerNodeCounts[i], layerNodeCounts[i + 1]))
 
-        #                                                   when you fix y.transpose(), you won't need dz.transpose here
-        dw1 = np.dot(A1, dz1.transpose()) / trainingSetSize
-        assert(np.shape(dw1) == (hiddenCount, outCount))
+            # add up the values in each column
+            dB[i] = np.sum(dZ[i], axis=1) / trainingSetSize
+            # gotta reshape db's because they've got shapes of (layerNodeCounts[2],)
+            dB[i] = np.reshape(dB[i], (layerNodeCounts[i + 1], 1))
 
-        # add up the values in each column
-        db1 = np.sum(dz1, axis=1) / trainingSetSize
-        # gotta reshape db's because they've got shapes of (outCount,)
-        db1 = np.reshape(db1, (outCount, 1))
-
-        dz0 = np.dot(W1, dz1) * dg(Z0)
-
-        #                                                   when you fix y.transpose(), you won't need dz.transpose here
-        dw0 = np.dot(A0, dz0.transpose()) / trainingSetSize
-        assert(np.shape(dw0) == (inCount, hiddenCount))
-
-        # add up the values in each column
-        db0 = np.sum(dz0, axis=1) / trainingSetSize
-        # gotta reshape db's because they've got shapes of (outCount,)
-        db0 = np.reshape(db0, (hiddenCount, 1))
+            if (i > 0):
+                dZ[i - 1] = np.dot(W[i], dZ[i]) * dg(Z[i - 1])
 
 
         # descend the gradient
-        W0 = W0 - learningRate * dw0
-        W1 = W1 - learningRate * dw1
-        B0 = B0 - learningRate * db0
-        B1 = B1 - learningRate * db1
+        for i in range(len(W)):
+            W[i] = W[i] - learningRate * dW[i]
+            # W[1] = W[1] - learningRate * dW[1]
+            # B[0] = B[0] - learningRate * dB[0]
+            B[i] = B[i] - learningRate * dB[i]
 
-        # print("\nW[0]:\n", W0)
-        # print("\nW[1]:\n", W1)
-        print("\nAverage Loss: ", getCost(getLoss(A2, Y.transpose()), trainingSetSize))
+        # print("\nW[0]:\n", W[0])
+        # print("\nW[1]:\n", W[1])
+        cost = getCost(getLoss(A[-1], Y.transpose()), trainingSetSize)
+        averageLosses.append(cost)
+
+        print("\nAverage Loss: ", cost)
+
+    mp.plot([i for i in range(epochCount)], averageLosses)
+    # mp.xscale("log")
+    mp.xlabel("Epoch Number")
+    mp.ylabel("Average Loss")
+    mp.show()
 
 #Sauces:
-#Pretty much everything                 https://www.coursera.org/learn/neural-networks-deep-learning/
+#Most stuff                             https://www.coursera.org/learn/neural-networks-deep-learning/
 #NumPy Docs                             https://numpy.org/doc/stable/index.html
 #Desmos for input functions             https://www.desmos.com/calculator
